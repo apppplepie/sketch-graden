@@ -1,0 +1,5 @@
+{
+  "name": "Glass Garden",
+  "description": "A generative art experience where organic, glowing plants grow based on noise algorithms and user interaction.",
+  "requestFramePermissions": []
+}
