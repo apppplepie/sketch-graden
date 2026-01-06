@@ -76,7 +76,7 @@ const Controls: React.FC<ControlsProps> = ({ settings, updateSettings, applyPres
       </div>
 
       <div className="mb-6 bg-slate-100 p-1 rounded-xl flex flex-wrap gap-1">
-        {[PlantType.VINE, PlantType.PALM, PlantType.GEOMETRIC, PlantType.UMBRELLA, PlantType.BERRY].map((t) => (
+        {[PlantType.VINE, PlantType.PALM, PlantType.GEOMETRIC, PlantType.UMBRELLA, PlantType.BERRY, PlantType.CLUSTER].map((t) => (
             <button
                 key={t}
                 onClick={() => applyPreset(t)}

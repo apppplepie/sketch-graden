@@ -8,7 +8,8 @@ export enum PlantType {
   PALM = 'PALM',
   GEOMETRIC = 'GEOMETRIC',
   UMBRELLA = 'UMBRELLA',
-  BERRY = 'BERRY'
+  BERRY = 'BERRY',
+  CLUSTER = 'CLUSTER'
 }
 
 export interface PlantSettings {

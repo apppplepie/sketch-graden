@@ -3,19 +3,19 @@ import GardenCanvas from './components/GardenCanvas';
 import Controls from './components/Controls';
 import { PlantSettings, PlantType, GardenCanvasRef } from './types';
 
-// Vine: Soft, Curvy, Pastel
+// Vine: More harmonious natural greens
 const PRESET_VINE: PlantSettings = {
   type: PlantType.VINE,
-  stemColorStart: '#86efac', 
-  stemColorEnd: '#2dd4bf',   
+  stemColorStart: '#a3e635', // Lime 400
+  stemColorEnd: '#15803d',   // Green 700
   baseWidth: 6,
   growthSpeed: 3,
   maxLife: 280,
   curlFactor: 0.08,
   straightness: 0.4, 
   
-  leafColorStart: '#bef264', 
-  leafColorEnd: '#10b981',   
+  leafColorStart: '#d9f99d', // Lime 200
+  leafColorEnd: '#166534',   // Green 800
   leafFrequency: 0.1,
   leafSize: 12,
 
@@ -118,6 +118,29 @@ const PRESET_BERRY: PlantSettings = {
   petalCount: 5, // Used as berry count
 };
 
+// Cluster: Bushy, Cool Tones, Blue Flower Clusters
+const PRESET_CLUSTER: PlantSettings = {
+  type: PlantType.CLUSTER,
+  stemColorStart: '#334155', // Slate 700
+  stemColorEnd: '#94a3b8',   // Slate 400
+  baseWidth: 5,
+  growthSpeed: 3,
+  maxLife: 260,
+  curlFactor: 0.1, // Wavy
+  straightness: 0.5, 
+  
+  leafColorStart: '#0f766e', // Teal 700
+  leafColorEnd: '#5eead4',   // Teal 300
+  leafFrequency: 0.08, 
+  leafSize: 10,
+
+  flowerColorStart: '#93c5fd', // Blue 300
+  flowerColorEnd: '#1e3a8a',   // Blue 900
+  flowerProbability: 0.85,
+  flowerSize: 24, // Size of the whole cluster
+  petalCount: 12, // Number of florets in cluster
+};
+
 const App: React.FC = () => {
   const [settings, setSettings] = useState<PlantSettings>(PRESET_VINE);
   const [clearTrigger, setClearTrigger] = useState(0);
@@ -145,7 +168,17 @@ const App: React.FC = () => {
       
       updateBounds();
       window.addEventListener('resize', updateBounds);
-      return () => window.removeEventListener('resize', updateBounds);
+      // Also update on scroll since position relative to viewport might change if we use fixed positions,
+      // but here bottle flows with document, so rect relative to viewport changes on scroll.
+      // However, GardenCanvas uses getBoundingClientRect() inside spawn logic too?
+      // Actually GardenCanvas.tsx only uses updateBottleRect to store the rect for drag constraints.
+      // Drag constraints need to be fresh if we scroll.
+      window.addEventListener('scroll', updateBounds);
+      
+      return () => {
+          window.removeEventListener('resize', updateBounds);
+          window.removeEventListener('scroll', updateBounds);
+      };
   }, []);
 
   const updateSettings = (newSettings: Partial<PlantSettings>) => {
@@ -165,6 +198,9 @@ const App: React.FC = () => {
               break;
           case PlantType.BERRY:
               setSettings(PRESET_BERRY);
+              break;
+          case PlantType.CLUSTER:
+              setSettings(PRESET_CLUSTER);
               break;
           case PlantType.VINE:
           default:
@@ -209,8 +245,14 @@ const App: React.FC = () => {
               
               // Trigger spawn at bottle bottom
               if (bottleRef.current && canvasRef.current) {
+                  // Re-calculate position based on current layout
+                  const rect = bottleRef.current.getBoundingClientRect();
+                  // We need x, y relative to the canvas (which covers the container).
+                  // Canvas is absolute inset-0 of the container.
+                  // If container is relative, canvas 0,0 is container 0,0.
+                  // bottleRef.offsetLeft is relative to container.
                   const x = bottleRef.current.offsetLeft + bottleRef.current.offsetWidth / 2;
-                  const y = bottleRef.current.offsetTop + bottleRef.current.offsetHeight - 10; // 10px padding from bottom
+                  const y = bottleRef.current.offsetTop + bottleRef.current.offsetHeight - 10; 
 
                   // Spawn INSIDE bottle
                   canvasRef.current.spawn(x, y, parsed, true);
@@ -226,25 +268,27 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex w-full h-screen bg-[#fdfbf7] overflow-hidden font-sans select-none text-slate-800">
+    <div className="flex w-full min-h-screen bg-[#fdfbf7] font-sans select-none text-slate-800">
       
-      {/* Sidebar Controls */}
-      <Controls 
-        settings={settings} 
-        updateSettings={updateSettings} 
-        applyPreset={applyPreset}
-        onClear={handleClear} 
-      />
+      {/* Sidebar Controls - Sticky to stay in view while scrolling */}
+      <div className="sticky top-0 h-screen z-40 flex-shrink-0">
+        <Controls 
+            settings={settings} 
+            updateSettings={updateSettings} 
+            applyPreset={applyPreset}
+            onClear={handleClear} 
+        />
+      </div>
 
-      {/* Main Right Area */}
-      <div className="flex-1 relative flex flex-col items-center justify-center bg-[#fdfbf7]">
+      {/* Main Right Area - Taller to allow scrolling */}
+      <div className="flex-1 relative flex flex-col items-center bg-[#fdfbf7] min-h-[140vh]">
          
-         {/* Paper Grain Texture (Subtle) - applied to right pane */}
+         {/* Paper Grain Texture */}
         <div className="absolute inset-0 opacity-[0.4] pointer-events-none z-10 mix-blend-multiply" 
             style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
         />
 
-        {/* Canvas Layer (Now manages dual layers) */}
+        {/* Canvas Layer */}
         <GardenCanvas 
             ref={canvasRef}
             settings={settings} 
@@ -258,25 +302,27 @@ const App: React.FC = () => {
             The Sketch Garden
             </h1>
             <p className="text-slate-500 mt-2 font-medium text-sm">
-            Paste DNA below to grow inside the bottle. Drag plants to rearrange.
+            Paste DNA below to grow inside the bottle. Double-click to plant.
             </p>
         </div>
 
-        {/* Glass Bottle Visual (Square/Rectangular) */}
+        {/* Spacer to push bottle down */}
+        <div className="flex-1 min-h-[30vh]"></div>
+
+        {/* Glass Bottle Visual - Moved down significantly via flex spacer above */}
         <div 
             ref={bottleRef}
-            className="relative z-20 w-80 h-[280px] border-x-2 border-b-2 border-slate-300/60 bg-white/10 backdrop-blur-[2px] rounded-none shadow-xl pointer-events-none"
+            className="relative z-20 w-80 h-[280px] border-x-2 border-b-2 border-slate-300/60 bg-white/10 backdrop-blur-[2px] rounded-none shadow-xl pointer-events-none mb-4"
         >
              {/* Rim */}
              <div className="absolute top-0 w-full h-1 bg-slate-300/40"></div>
              {/* Glass Reflections */}
              <div className="absolute top-4 right-8 w-px h-32 bg-white/30 blur-[1px]"></div>
              <div className="absolute top-8 right-6 w-2 h-16 bg-white/10 rounded-full blur-sm"></div>
-             {/* Water level hint? Optional, leaving clean for now */}
         </div>
 
         {/* DNA Input Area & Undo Button */}
-        <div className="relative z-30 mt-8 w-80 flex gap-2">
+        <div className="relative z-30 w-80 flex gap-2 mb-20">
             <input 
                 type="text"
                 value={importString}
